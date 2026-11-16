@@ -1,0 +1,30 @@
+{
+  "name": "@soltoolkit/demo-api",
+  "version": "0.1.0",
+  "private": true,
+  "description": "A small, rate-limited, read-only HTTP API over the soltoolkit packages: launchpad quotes, token safety, holder maps, trading-app attribution, wallet scores, and the MCP endpoint.",
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "start": "tsx src/main.ts",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rimraf .turbo"
+  },
+  "dependencies": {
+    "@soltoolkit/bot-core": "^0.1.0",
+    "@soltoolkit/launchpad-sdk": "^0.1.0",
+    "@soltoolkit/mcp": "workspace:^",
+    "@soltoolkit/rpc": "^0.1.0",
+    "ioredis": "^6.0.0",
+    "tsx": "^4.19.2"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  }
+}

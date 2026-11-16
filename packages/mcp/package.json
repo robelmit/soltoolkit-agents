@@ -1,0 +1,75 @@
+{
+  "name": "@soltoolkit/mcp",
+  "version": "0.1.0",
+  "description": "A read-only MCP server for Solana launchpad tokens: quote a trade, grade a token, map its holders, name the app behind a transaction, score a wallet. Runs over stdio or HTTP, holds no key, and has no tool that signs or sends.",
+  "license": "MIT",
+  "keywords": [
+    "solana",
+    "mcp",
+    "model-context-protocol",
+    "ai-agent",
+    "pump.fun",
+    "launchpad",
+    "read-only"
+  ],
+  "type": "module",
+  "main": "./dist/index.cjs",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "bin": {
+    "soltoolkit-mcp": "./dist/cli.js"
+  },
+  "exports": {
+    ".": {
+      "import": {
+        "types": "./dist/index.d.ts",
+        "default": "./dist/index.js"
+      },
+      "require": {
+        "types": "./dist/index.d.cts",
+        "default": "./dist/index.cjs"
+      }
+    }
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "sideEffects": false,
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "build": "tsup",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "clean": "rimraf dist .turbo"
+  },
+  "dependencies": {
+    "@soltoolkit/app-registry": "^0.1.0",
+    "@soltoolkit/bot-core": "^0.1.0",
+    "@soltoolkit/holder-map": "^0.1.0",
+    "@soltoolkit/launchpad-sdk": "^0.1.0",
+    "@soltoolkit/rpc": "^0.1.0",
+    "@soltoolkit/token-safety": "^0.1.0",
+    "@soltoolkit/wallet-pnl": "^0.1.0"
+  },
+  "peerDependencies": {
+    "ioredis": ">=5"
+  },
+  "peerDependenciesMeta": {
+    "ioredis": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsup": "^8.4.0",
+    "typescript": "^5.7.2",
+    "vitest": "^2.1.8"
+  },
+  "publishConfig": {
+    "access": "public"
+  }
+}
