@@ -1,7 +1,7 @@
 import { MagnifyingGlassIcon } from '@phosphor-icons/react';
 import { useEffect, useState, type FormEvent } from 'react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { isAddress } from '@/lib/format';
 import { go } from '@/lib/route';
 
@@ -22,15 +22,17 @@ export function TokenSearch({ initial = '', autoFocus = false }: { initial?: str
   return (
     <form onSubmit={submit} className="flex w-full flex-col gap-1.5">
       <div className="flex gap-2">
-        <div className="relative flex-1">
-          <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-          <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste a token mint address" aria-label="Token mint address" aria-invalid={invalid} autoFocus={autoFocus} className="h-10 bg-background pl-9 font-mono text-sm" spellCheck={false} />
-        </div>
+        <InputGroup className="h-10 flex-1 bg-background">
+          <InputGroupAddon>
+            <MagnifyingGlassIcon />
+          </InputGroupAddon>
+          <InputGroupInput value={text} onChange={(e) => setText(e.target.value)} placeholder="Paste a token mint address" aria-label="Token mint address" aria-invalid={invalid} autoFocus={autoFocus} className="font-mono text-sm" spellCheck={false} />
+        </InputGroup>
         <Button type="submit" size="lg" className="h-10">
           Check
         </Button>
       </div>
-      {invalid && <p className="text-sm text-danger">That is not a Solana address.</p>}
+      {invalid && <p className="text-sm text-destructive">That is not a Solana address.</p>}
     </form>
   );
 }

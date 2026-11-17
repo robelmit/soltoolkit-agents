@@ -10,7 +10,9 @@ The toolkit working on Solana mainnet, in a browser. Every figure on it comes fr
 | Trading apps | Which terminal, bot or wallet placed a transaction, and the registry of the apps it can name |
 | Developers | The npm packages, the MCP server for AI agents, the API's routes and the repositories |
 
-Built with React, [shadcn/ui](https://ui.shadcn.com) (Radix, Tailwind CSS 4, the Geist font) and [Phosphor](https://phosphoricons.com) icons. It follows the system's light or dark setting and is laid out for a phone first.
+Built with [ReUI](https://reui.io) components (Frame, Data Grid, Badge, Alert, Code Block, Icon Tile) on shadcn/ui and Radix, Tailwind CSS 4, the DM Sans and DM Mono fonts, and [Phosphor](https://phosphoricons.com) icons, with no gradients. It follows the system's light or dark setting and is laid out for a phone first.
+
+The ReUI components in `src/components/reui` are copied from ReUI's registry by the shadcn CLI (`pnpm dlx shadcn@latest add @reui/<name>`) and kept as they come; the repository's lint skips them.
 
 ## Run it
 
@@ -40,7 +42,7 @@ Holder maps and the top-10 share use `getTokenLargestAccounts`, which most free 
 pnpm --filter @soltoolkit/live test
 ```
 
-6 tests cover the number, amount and time formatting (unknown is never zero, base units converted exactly) and the page links. The site was also run against the demo API on Solana mainnet's public endpoint and checked in a browser on a desktop and a phone screen, in light and dark mode: a token's grade and facts, a launchpad quote, a wallet report, the registry.
+6 tests cover the number, amount and time formatting (unknown is never zero, base units converted exactly) and the page links. The site was also run against the demo API on Solana mainnet's public endpoint and checked in a browser on a desktop and a phone screen, in light and dark mode: a token's grade and facts, a launchpad quote, a wallet report, the registry in the paginated data grid, the highlighted code blocks.
 
 ## Licence
 

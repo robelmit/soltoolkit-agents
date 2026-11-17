@@ -1,36 +1,52 @@
-import { ArrowsLeftRightIcon, CheckCircleIcon, CircleDashedIcon, CoinsIcon, GraphIcon, InfoIcon, MagnifyingGlassIcon, ShieldCheckIcon, SpinnerGapIcon, XCircleIcon } from '@phosphor-icons/react';
+import { ArrowsLeftRightIcon, CheckCircleIcon, CircleDashedIcon, CoinsIcon, GraphIcon, InfoIcon, MagnifyingGlassIcon, ShieldCheckIcon, XCircleIcon } from '@phosphor-icons/react';
 import { HolderMap } from '@soltoolkit/holder-map-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Address } from '@/components/address';
 import { GradeBadge, gradeInfo } from '@/components/grade';
+import { Panel } from '@/components/panel';
+import { Alert, AlertDescription, AlertTitle } from '@/components/reui/alert';
+import { Badge } from '@/components/reui/badge';
 import { Empty, Failure, Figure } from '@/components/states';
 import { TokenSearch } from '@/components/token-search';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Progress } from '@/components/ui/progress';
 import { Skeleton } from '@/components/ui/skeleton';
+import { Spinner } from '@/components/ui/spinner';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
-import { api, explain, type HolderMapData, type Quote, type Safety, type SafetyCheck } from '@/lib/api';
+import { ApiError, api, explain, type HolderMapData, type Quote, type Safety, type SafetyCheck } from '@/lib/api';
 import { isAddress, percent, short, sol, solscan, units } from '@/lib/format';
 import { go } from '@/lib/route';
 
-/** Well-known mainnet tokens to try: listed by their public mint addresses. */
+/** Well-known mainnet tokens to try, by their public mint addresses. */
 const EXAMPLES = [
   { symbol: 'BONK', mint: 'DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263' },
   { symbol: 'WIF', mint: 'EKpQGSJtjMFqKZ9KQanSqYXRcF8fBopzLHYxdM65zcjm' },
   { symbol: 'JUP', mint: 'JUPyiwrYJFskUPiHa7hkeR8VUtAeFoSYbKedZNsDvCN' },
 ];
 
+/** Reads `path`; when the API says it is busy or the budget is spent, waits and asks again, up to three times. */
 function useLoad<T>(path: string | null): { data: T | null; error: string | null; loading: boolean } {
   const [state, setState] = useState<{ data: T | null; error: string | null; loading: boolean }>({ data: null, error: null, loading: false });
   useEffect(() => {
     if (!path) return;
     let stopped = false;
     setState({ data: null, error: null, loading: true });
-    api<T>(path)
-      .then((data) => !stopped && setState({ data, error: null, loading: false }))
-      .catch((error: unknown) => !stopped && setState({ data: null, error: explain(error), loading: false }));
+    const attempt = async (tries: number): Promise<void> => {
+      try {
+        const data = await api<T>(path);
+        if (!stopped) setState({ data, error: null, loading: false });
+      } catch (error) {
+        const again = error instanceof ApiError && (error.code === 'BUSY' || error.code === 'RATE_LIMITED') && tries < 3;
+        if (again && !stopped) {
+          const wait = error.retryAfter ? error.retryAfter * 1000 : 1500 * (tries + 1);
+          await new Promise((resolve) => setTimeout(resolve, Math.min(wait, 10_000)));
+          if (!stopped) return attempt(tries + 1);
+          return;
+        }
+        if (!stopped) setState({ data: null, error: explain(error), loading: false });
+      }
+    };
+    void attempt(0);
     return () => {
       stopped = true;
     };
@@ -39,15 +55,23 @@ function useLoad<T>(path: string | null): { data: T | null; error: string | null
 }
 
 function CheckRow({ check }: { check: SafetyCheck }) {
-  const icon = check.unverified ? <CircleDashedIcon weight="bold" className="text-muted-foreground" /> : check.passed ? <CheckCircleIcon weight="fill" className="text-safe" /> : <XCircleIcon weight="fill" className={check.critical ? 'text-danger' : 'text-caution'} />;
+  const icon = check.unverified ? <CircleDashedIcon weight="bold" className="text-muted-foreground" /> : check.passed ? <CheckCircleIcon weight="fill" className="text-success" /> : <XCircleIcon weight="fill" className={check.critical ? 'text-destructive' : 'text-warning'} />;
   return (
     <li className="flex items-start gap-3 py-2.5">
       <span className="mt-0.5 [&_svg]:size-5">{icon}</span>
       <div className="min-w-0 flex-1">
         <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
           {check.label}
-          {check.critical && !check.passed && !check.unverified && <Badge className="h-4 bg-danger/12 px-1.5 text-[0.625rem] text-danger">critical</Badge>}
-          {check.unverified && <Badge variant="outline" className="h-4 px-1.5 text-[0.625rem] text-muted-foreground">not verified</Badge>}
+          {check.critical && !check.passed && !check.unverified && (
+            <Badge variant="destructive-light" size="sm">
+              critical
+            </Badge>
+          )}
+          {check.unverified && (
+            <Badge variant="outline" size="sm" className="text-muted-foreground">
+              not verified
+            </Badge>
+          )}
         </div>
         <p className="text-xs text-muted-foreground">{check.detail}</p>
       </div>
@@ -55,25 +79,18 @@ function CheckRow({ check }: { check: SafetyCheck }) {
   );
 }
 
-function SafetyCard({ safety }: { safety: Safety }) {
+function SafetyPanel({ safety }: { safety: Safety }) {
   const { report } = safety;
   const info = gradeInfo(report.grade);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <ShieldCheckIcon weight="duotone" className="size-5 text-brand" />
-          Safety
-        </CardTitle>
-        <CardDescription>Read from the chain. A check that could not run never counts as a pass.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <Panel title="Safety" description="Read from the chain. A check that could not run never counts as a pass." icon={<ShieldCheckIcon weight="duotone" />}>
+      <div className="flex flex-col gap-4">
         <div className="flex flex-wrap items-center gap-4">
-          <GradeBadge grade={report.grade} size="lg" />
+          <GradeBadge grade={report.grade} size="xl" />
           <div className="flex flex-col">
             <span className="text-2xl font-semibold tabular-nums">
               {report.score}
-              <span className="text-base text-muted-foreground">/{report.maxScore} passed</span>
+              <span className="text-base font-normal text-muted-foreground">/{report.maxScore} passed</span>
             </span>
             <span className="text-xs text-muted-foreground">{info.meaning}</span>
           </div>
@@ -84,51 +101,53 @@ function SafetyCard({ safety }: { safety: Safety }) {
           ))}
         </ul>
         {safety.warnings.length > 0 && (
-          <div className="rounded-lg border border-caution/30 bg-caution/8 p-3 text-sm">
-            <p className="mb-1 font-medium text-caution">Token-2022 features to know about</p>
-            <ul className="list-disc pl-5 text-muted-foreground">
-              {safety.warnings.map((w) => (
-                <li key={w}>{w}</li>
-              ))}
-            </ul>
+          <Alert variant="warning">
+            <InfoIcon weight="duotone" />
+            <AlertTitle>Token-2022 features to know about</AlertTitle>
+            <AlertDescription>
+              <ul className="list-disc pl-4">
+                {safety.warnings.map((w) => (
+                  <li key={w}>{w}</li>
+                ))}
+              </ul>
+            </AlertDescription>
+          </Alert>
+        )}
+        {report.incomplete && (
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Progress value={((report.maxScore - report.unverifiedCount) / report.maxScore) * 100} className="w-24" aria-label="Checks that could run" />
+            {report.unverifiedCount} of {report.maxScore} checks could not run from the chain alone.
           </div>
         )}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   );
 }
 
-function FactsCard({ safety }: { safety: Safety }) {
+function FactsPanel({ safety }: { safety: Safety }) {
   const { facts } = safety;
+  const none = <span className="text-success-foreground dark:text-success">None</span>;
   const rows: [string, ReactNode][] = [
-    ['Supply', `${units(facts.supply, facts.decimals, 2)}`],
+    ['Supply', units(facts.supply, facts.decimals, 2)],
     ['Decimals', String(facts.decimals)],
     ['Program', facts.tokenProgram === 'spl-token-2022' ? 'Token-2022' : 'SPL Token'],
-    ['Mint authority', facts.mintAuthority ? <Address value={facts.mintAuthority} href={solscan.account(facts.mintAuthority)} /> : <span className="text-safe">None</span>],
-    ['Freeze authority', facts.freezeAuthority ? <Address value={facts.freezeAuthority} href={solscan.account(facts.freezeAuthority)} /> : <span className="text-safe">None</span>],
+    ['Mint authority', facts.mintAuthority ? <Address value={facts.mintAuthority} href={solscan.account(facts.mintAuthority)} /> : none],
+    ['Freeze authority', facts.freezeAuthority ? <Address value={facts.freezeAuthority} href={solscan.account(facts.freezeAuthority)} /> : none],
     ['Metadata', facts.metadata ? (facts.metadata.mutable ? 'Can still be changed' : 'Locked') : <Figure value={null} />],
     ['Top 10 holders', facts.holders ? `${percent(facts.holders.top10Pct)}${facts.holders.complete ? '' : ' or more'}` : <Figure value={null} />],
   ];
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <InfoIcon weight="duotone" className="size-5 text-brand" />
-          On-chain facts
-        </CardTitle>
-      </CardHeader>
-      <CardContent>
-        <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 text-sm">
-          {rows.map(([k, v]) => (
-            <div key={k} className="contents">
-              <dt className="text-muted-foreground">{k}</dt>
-              <dd className="text-right font-medium tabular-nums">{v}</dd>
-            </div>
-          ))}
-        </dl>
-        {safety.notes.length > 0 && <p className="mt-4 text-xs text-muted-foreground">{safety.notes.join(' ')}</p>}
-      </CardContent>
-    </Card>
+    <Panel title="On-chain facts" icon={<InfoIcon weight="duotone" />}>
+      <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-2.5 text-sm">
+        {rows.map(([k, v]) => (
+          <div key={k} className="contents">
+            <dt className="text-muted-foreground">{k}</dt>
+            <dd className="text-right font-medium tabular-nums">{v}</dd>
+          </div>
+        ))}
+      </dl>
+      {safety.notes.length > 0 && <p className="mt-4 text-xs text-muted-foreground">{safety.notes.join(' ')}</p>}
+    </Panel>
   );
 }
 
@@ -139,20 +158,13 @@ const BUYS = [
   { label: '5 SOL', lamports: '5000000000' },
 ];
 
-function QuoteCard({ mint, decimals, symbol }: { mint: string; decimals: number | null; symbol: string }) {
+function QuotePanel({ mint, decimals, symbol }: { mint: string; decimals: number | null; symbol: string }) {
   const [amount, setAmount] = useState(BUYS[0]!.lamports);
   const quote = useLoad<Quote>(`/v1/quote?mint=${mint}&side=buy&amountIn=${amount}&slippageBps=300`);
   const out = (raw: string): string => (decimals === null ? `${raw} raw units` : `${units(raw, decimals, 2)} ${symbol}`);
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <ArrowsLeftRightIcon weight="duotone" className="size-5 text-brand" />
-          Quote a buy
-        </CardTitle>
-        <CardDescription>On pump.fun, PumpSwap or Meteora DBC, whichever holds it, in the venue's own arithmetic.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <Panel title="Quote a buy" description="On pump.fun, PumpSwap or Meteora DBC, whichever holds it, in the venue's own arithmetic." icon={<ArrowsLeftRightIcon weight="duotone" />}>
+      <div className="flex flex-col gap-4">
         <ToggleGroup type="single" variant="outline" value={amount} onValueChange={(v) => v && setAmount(v)} className="w-full">
           {BUYS.map((b) => (
             <ToggleGroupItem key={b.lamports} value={b.lamports} className="flex-1">
@@ -177,7 +189,7 @@ function QuoteCard({ mint, decimals, symbol }: { mint: string; decimals: number 
             <dl className="grid grid-cols-[auto_1fr] gap-x-6 gap-y-1.5 text-sm">
               <dt className="text-muted-foreground">Venue</dt>
               <dd className="text-right">
-                <Badge variant="secondary" className="capitalize">
+                <Badge variant="primary-light" className="capitalize">
                   {quote.data.venue}
                 </Badge>
               </dd>
@@ -193,47 +205,45 @@ function QuoteCard({ mint, decimals, symbol }: { mint: string; decimals: number 
             <p className="text-xs text-muted-foreground">A quote only. The SDK builds the unsigned transaction for your own wallet and verifies it before anything is signed.</p>
           </div>
         ) : null}
-      </CardContent>
-    </Card>
+      </div>
+    </Panel>
   );
 }
 
-function HoldersCard({ mint }: { mint: string }) {
-  const map = useLoad<HolderMapData>(`/v1/tokens/${mint}/holders?walk=10`);
+/** The heaviest read: started only once the safety report is in, so it does not crowd the others out. */
+function HoldersPanel({ mint, ready }: { mint: string; ready: boolean }) {
+  const map = useLoad<HolderMapData>(ready ? `/v1/tokens/${mint}/holders?walk=10` : null);
   const graph = useMemo(() => (map.data ? { nodes: map.data.nodes, edges: map.data.edges, clusters: map.data.clusters } : null), [map.data]);
+  const clusters = map.data?.clusters ?? [];
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <GraphIcon weight="duotone" className="size-5 text-brand" />
-          Holder map
-        </CardTitle>
-        <CardDescription>The largest holders, the transfers among them, and the clusters they form. Pools and burn addresses stay out of clusters.</CardDescription>
-      </CardHeader>
-      <CardContent>
-        {map.loading ? (
-          <div className="grid place-items-center gap-3 py-16 text-sm text-muted-foreground">
-            <SpinnerGapIcon className="size-6 animate-spin" />
-            Reading holders and their transfers from the chain…
-          </div>
-        ) : map.error ? (
-          <Failure message={map.error} />
-        ) : graph && map.data ? (
-          <div className="flex flex-col gap-3">
-            {map.data.clusters.length > 0 && (
-              <div className="flex flex-wrap gap-2">
-                {map.data.clusters.slice(0, 4).map((c) => (
-                  <Badge key={c.id} variant="outline" className="tabular-nums">
-                    Cluster {c.id}: {c.wallets} wallets, {percent(c.pct)}
-                  </Badge>
-                ))}
-              </div>
-            )}
-            <HolderMap graph={graph} notes={map.data.notes} theme="auto" width={760} height={460} />
-          </div>
-        ) : null}
-      </CardContent>
-    </Card>
+    <Panel
+      title="Holder map"
+      description="The largest holders, the transfers among them, and the clusters they form. Pools and burn addresses stay out of clusters."
+      icon={<GraphIcon weight="duotone" />}
+      action={clusters.length > 0 ? <Badge variant="info-light">{clusters.length} clusters</Badge> : undefined}
+    >
+      {map.loading || !ready ? (
+        <div className="grid place-items-center gap-3 py-16 text-sm text-muted-foreground">
+          <Spinner className="size-6" />
+          Reading holders and their transfers from the chain…
+        </div>
+      ) : map.error ? (
+        <Failure message={map.error} />
+      ) : graph && map.data ? (
+        <div className="flex flex-col gap-3">
+          {clusters.length > 0 && (
+            <div className="flex flex-wrap gap-2">
+              {clusters.slice(0, 4).map((c) => (
+                <Badge key={c.id} variant="outline" className="tabular-nums">
+                  Cluster {c.id}: {c.wallets} wallets, {percent(c.pct)}
+                </Badge>
+              ))}
+            </div>
+          )}
+          <HolderMap graph={graph} notes={map.data.notes} theme="auto" width={760} height={460} />
+        </div>
+      ) : null}
+    </Panel>
   );
 }
 
@@ -270,41 +280,33 @@ export function TokenPage({ mint }: { mint: string | null }) {
             <Skeleton className="h-8 w-56" />
           ) : (
             <h1 className="flex flex-wrap items-center gap-3 text-2xl font-semibold tracking-tight">
-              {meta ? `${meta.name}` : short(mint, 6)}
-              {meta?.symbol && meta.symbol.toLowerCase() !== meta.name.toLowerCase() && <span className="text-lg text-muted-foreground">{meta.symbol}</span>}
+              {meta ? meta.name : short(mint, 6)}
+              {meta?.symbol && meta.symbol.toLowerCase() !== meta.name.toLowerCase() && <span className="text-lg font-normal text-muted-foreground">{meta.symbol}</span>}
               {safety.data && <GradeBadge grade={safety.data.report.grade} />}
             </h1>
           )}
           <Address value={mint} href={solscan.token(mint)} keep={8} className="mt-1 text-muted-foreground" />
         </div>
         <div className="w-full md:max-w-md">
-          <TokenSearch initial="" />
+          <TokenSearch />
         </div>
       </div>
       {safety.error ? (
-        <Card>
-          <CardContent>
-            <Empty icon={<MagnifyingGlassIcon weight="duotone" />} title="Could not read this token">
-              {safety.error}
-            </Empty>
-          </CardContent>
-        </Card>
+        <Panel title="Could not read this token" icon={<MagnifyingGlassIcon weight="duotone" />}>
+          <Empty icon={<MagnifyingGlassIcon weight="duotone" />} title="Nothing came back from the chain">
+            {safety.error}
+          </Empty>
+        </Panel>
       ) : (
         <>
           <div className="grid gap-6 lg:grid-cols-[1.2fr_1fr]">
-            {safety.data ? <SafetyCard safety={safety.data} /> : <Skeleton className="h-96 rounded-xl" />}
+            {safety.data ? <SafetyPanel safety={safety.data} /> : <Skeleton className="h-96 rounded-xl" />}
             <div className="flex flex-col gap-6">
-              {safety.data ? <FactsCard safety={safety.data} /> : <Skeleton className="h-64 rounded-xl" />}
-              <QuoteCard mint={mint} decimals={safety.data?.facts.decimals ?? null} symbol={meta?.symbol ?? 'tokens'} />
+              {safety.data ? <FactsPanel safety={safety.data} /> : <Skeleton className="h-64 rounded-xl" />}
+              <QuotePanel mint={mint} decimals={safety.data?.facts.decimals ?? null} symbol={meta?.symbol ?? 'tokens'} />
             </div>
           </div>
-          <HoldersCard mint={mint} />
-          {safety.data && safety.data.report.incomplete && (
-            <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Progress value={((safety.data.report.maxScore - safety.data.report.unverifiedCount) / safety.data.report.maxScore) * 100} className="w-24" aria-label="Checks that could run" />
-              {safety.data.report.unverifiedCount} of {safety.data.report.maxScore} checks could not run from the chain alone.
-            </div>
-          )}
+          <HoldersPanel mint={mint} ready={safety.data !== null} />
         </>
       )}
     </div>

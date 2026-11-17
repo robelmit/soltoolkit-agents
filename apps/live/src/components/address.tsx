@@ -25,7 +25,7 @@ export function CopyButton({ text, label = 'Copy' }: { text: string; label?: str
     <Tooltip>
       <TooltipTrigger asChild>
         <Button variant="ghost" size="icon-xs" aria-label={label} onClick={async (e) => { e.stopPropagation(); setCopied(await copyText(text)); }}>
-          {copied ? <CheckIcon weight="bold" className="text-safe" /> : <CopyIcon />}
+          {copied ? <CheckIcon weight="bold" className="text-success" /> : <CopyIcon />}
         </Button>
       </TooltipTrigger>
       <TooltipContent>{copied ? 'Copied' : label}</TooltipContent>

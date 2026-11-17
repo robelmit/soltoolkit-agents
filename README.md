@@ -8,7 +8,7 @@ Solana launchpad data for AI agents, for apps and for people, from the team behi
 |---|---|
 | [`@soltoolkit/mcp`](packages/mcp) | A Model Context Protocol server over stdio or HTTP: quote a launchpad trade, grade a token, map its holders, name the app behind a transaction, score a wallet. No key, and no tool that signs or sends |
 | [demo-api](apps/demo-api) | The same tools as plain HTTP routes, with a budget per client and a short cache in front of the RPC endpoint |
-| [live](apps/live) | soltoolkit Live: launches, a token checker with grade, holder map and quotes, a wallet report and the trading-app checker, in React with shadcn/ui and Phosphor icons |
+| [live](apps/live) | soltoolkit Live: launches, a token checker with grade, holder map and quotes, a wallet report and the trading-app checker, in React with ReUI components, DM Sans and Phosphor icons |
 
 [docs/architecture.md](docs/architecture.md) shows how the soltoolkit pieces fit together.
 

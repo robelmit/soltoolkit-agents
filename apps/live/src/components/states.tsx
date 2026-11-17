@@ -1,24 +1,29 @@
 import { WarningCircleIcon } from '@phosphor-icons/react';
 import type { ReactNode } from 'react';
+import { Alert, AlertDescription } from '@/components/reui/alert';
+import { Empty as EmptyRoot, EmptyContent, EmptyDescription, EmptyHeader, EmptyMedia, EmptyTitle } from '@/components/ui/empty';
 
 /** Nothing to show yet, said plainly, with what to do about it. */
 export function Empty({ icon, title, children, action }: { icon: ReactNode; title: string; children?: ReactNode; action?: ReactNode }) {
   return (
-    <div className="flex flex-col items-center gap-2 px-6 py-12 text-center">
-      <div className="mb-1 grid size-11 place-items-center rounded-full bg-muted text-muted-foreground [&_svg]:size-5">{icon}</div>
-      <p className="font-medium">{title}</p>
-      {children && <div className="max-w-md text-sm text-muted-foreground">{children}</div>}
-      {action && <div className="mt-2">{action}</div>}
-    </div>
+    <EmptyRoot className="py-10">
+      <EmptyHeader>
+        <EmptyMedia variant="icon">{icon}</EmptyMedia>
+        <EmptyTitle>{title}</EmptyTitle>
+        {children && <EmptyDescription>{children}</EmptyDescription>}
+      </EmptyHeader>
+      {action && <EmptyContent>{action}</EmptyContent>}
+    </EmptyRoot>
   );
 }
 
+/** A failed read, as ReUI's Alert. */
 export function Failure({ message }: { message: string }) {
   return (
-    <div className="flex items-start gap-2 rounded-lg border border-danger/30 bg-danger/8 p-3 text-sm text-danger">
-      <WarningCircleIcon weight="duotone" className="mt-0.5 size-4 shrink-0" />
-      <span>{message}</span>
-    </div>
+    <Alert variant="destructive">
+      <WarningCircleIcon weight="duotone" />
+      <AlertDescription className="text-foreground">{message}</AlertDescription>
+    </Alert>
   );
 }
 

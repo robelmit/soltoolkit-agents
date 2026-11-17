@@ -2,6 +2,8 @@ import { CodeIcon, FingerprintIcon, GithubLogoIcon, RocketLaunchIcon, ShieldChec
 import { cn } from 'cn';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrandMark } from '@/components/brand';
+import { Badge } from '@/components/reui/badge';
+import { Frame, FramePanel } from '@/components/reui/frame';
 import { TokenSearch } from '@/components/token-search';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
@@ -36,10 +38,10 @@ function ApiStatus() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <span className="hidden items-center gap-1.5 rounded-full border px-2.5 py-1 text-xs text-muted-foreground sm:inline-flex">
-          <span className={cn('size-1.5 rounded-full', up === null ? 'bg-muted-foreground' : up ? 'bg-safe' : 'bg-danger')} />
+        <Badge variant={up === null ? 'outline' : up ? 'success-light' : 'destructive-light'} size="lg" radius="full" className="hidden sm:inline-flex">
+          <span className={cn('size-1.5 rounded-full', up === null ? 'bg-muted-foreground' : up ? 'bg-success' : 'bg-destructive')} />
           {up === null ? 'Connecting' : up ? 'Mainnet' : 'API offline'}
-        </span>
+        </Badge>
       </TooltipTrigger>
       <TooltipContent>{up ? 'Reading Solana mainnet through the free demo API' : 'The demo API is not answering'}</TooltipContent>
     </Tooltip>
@@ -48,20 +50,22 @@ function ApiStatus() {
 
 function Intro() {
   return (
-    <section className="relative overflow-hidden rounded-2xl border bg-card p-6 sm:p-8">
-      <div aria-hidden className="pointer-events-none absolute -top-24 -right-24 size-72 rounded-full bg-brand/15 blur-3xl" />
-      <div aria-hidden className="pointer-events-none absolute -bottom-28 left-1/3 size-72 rounded-full bg-brand-2/12 blur-3xl" />
-      <div className="relative flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
+    <Frame spacing="lg">
+      <FramePanel className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
         <div className="max-w-xl">
-          <p className="mb-2 text-xs font-medium tracking-wide text-brand uppercase">Open source · MIT · No keys held</p>
+          <div className="mb-3 flex flex-wrap gap-1.5">
+            <Badge variant="primary-light">Open source</Badge>
+            <Badge variant="outline">MIT</Badge>
+            <Badge variant="outline">No keys held</Badge>
+          </div>
           <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Tools for Solana launchpads, running live on mainnet</h1>
           <p className="mt-3 text-muted-foreground">Launches as they happen, token safety, holder clusters, quotes, wallet scores and the apps behind trades. Every number on this site comes from the open-source soltoolkit packages.</p>
         </div>
         <div className="w-full lg:max-w-md">
           <TokenSearch />
         </div>
-      </div>
-    </section>
+      </FramePanel>
+    </Frame>
   );
 }
 
@@ -78,7 +82,9 @@ export function App() {
           <a href={href('launches')} className="flex items-center gap-2.5 font-semibold tracking-tight">
             <BrandMark className="size-7" />
             soltoolkit
-            <span className="rounded-md bg-brand/12 px-1.5 py-0.5 text-[0.6875rem] font-semibold text-brand">Live</span>
+            <Badge variant="primary-light" size="sm">
+              Live
+            </Badge>
           </a>
           <nav className="hidden items-center gap-1 md:flex" aria-label="Pages">
             {NAV.map(({ page, label, Icon }) => (

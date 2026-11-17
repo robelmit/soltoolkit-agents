@@ -1,13 +1,14 @@
-import { AppWindowIcon, FingerprintIcon, MagnifyingGlassIcon, QuestionIcon, RobotIcon, TerminalWindowIcon, WalletIcon } from '@phosphor-icons/react';
+import { AppWindowIcon, FingerprintIcon, ListMagnifyingGlassIcon, MagnifyingGlassIcon, QuestionIcon, RobotIcon, TerminalWindowIcon, WalletIcon } from '@phosphor-icons/react';
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react';
 import { Address } from '@/components/address';
-import { Empty, Failure } from '@/components/states';
-import { Badge } from '@/components/ui/badge';
+import { DataTable, type Column } from '@/components/data-table';
+import { Panel } from '@/components/panel';
+import { Alert, AlertDescription, AlertTitle } from '@/components/reui/alert';
+import { Badge } from '@/components/reui/badge';
+import { Failure } from '@/components/states';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
+import { InputGroup, InputGroupAddon, InputGroupInput } from '@/components/ui/input-group';
 import { Skeleton } from '@/components/ui/skeleton';
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { api, explain, type AppAttribution, type TradingApp } from '@/lib/api';
 import { isSignature, solscan } from '@/lib/format';
 import { go } from '@/lib/route';
@@ -51,48 +52,45 @@ function Identify({ signature }: { signature: string | null }) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="flex items-center gap-2 text-base font-semibold">
-          <FingerprintIcon weight="duotone" className="size-5 text-brand" />
-          Which app placed this trade?
-        </CardTitle>
-        <CardDescription>Paste a transaction signature. The registry names the terminal, bot or wallet behind it, with the evidence: a fee wallet that was paid, a relayer, or a router program.</CardDescription>
-      </CardHeader>
-      <CardContent className="flex flex-col gap-4">
+    <Panel title="Which app placed this trade?" description="Paste a transaction signature. The registry names the terminal, bot or wallet behind it, with the evidence: a fee wallet that was paid, a relayer, or a router program." icon={<FingerprintIcon weight="duotone" />}>
+      <div className="flex flex-col gap-4">
         <form onSubmit={submit} className="flex gap-2">
-          <div className="relative flex-1">
-            <MagnifyingGlassIcon className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
-            <Input value={text} onChange={(e) => setText(e.target.value)} placeholder="Transaction signature" aria-label="Transaction signature" className="h-10 pl-9 font-mono text-sm" spellCheck={false} />
-          </div>
+          <InputGroup className="h-10 flex-1">
+            <InputGroupAddon>
+              <MagnifyingGlassIcon />
+            </InputGroupAddon>
+            <InputGroupInput value={text} onChange={(e) => setText(e.target.value)} placeholder="Transaction signature" aria-label="Transaction signature" className="font-mono text-sm" spellCheck={false} />
+          </InputGroup>
           <Button type="submit" size="lg" className="h-10" disabled={busy}>
             Identify
           </Button>
         </form>
         {busy && <Skeleton className="h-16 w-full" />}
         {error && <Failure message={error} />}
-        {result && (
-          <div className="flex flex-col gap-2 rounded-lg border bg-muted/40 p-4">
-            {result.platform ? (
-              <p className="flex items-center gap-2 text-lg font-semibold">
-                <AppWindowIcon weight="duotone" className="size-6 text-brand" />
+        {result &&
+          (result.platform ? (
+            <Alert variant="success">
+              <AppWindowIcon weight="duotone" />
+              <AlertTitle className="flex items-center gap-2">
                 {result.platform}
                 {result.by && <Badge variant="outline">by {result.by.replace(/_/g, ' ')}</Badge>}
-              </p>
-            ) : (
-              <p className="flex items-center gap-2 font-medium">
-                <QuestionIcon weight="duotone" className="size-5 text-muted-foreground" />
-                No listed app can be named. That is unknown, not "none".
-              </p>
-            )}
-            <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground">
-              Transaction <Address value={result.signature} href={solscan.tx(result.signature)} keep={8} />
-              {result.failed && <Badge className="bg-danger/12 text-danger">failed on chain</Badge>}
-            </div>
-          </div>
-        )}
-      </CardContent>
-    </Card>
+              </AlertTitle>
+              <AlertDescription>
+                <span className="flex flex-wrap items-center gap-2">
+                  Transaction <Address value={result.signature} href={solscan.tx(result.signature)} keep={8} />
+                  {result.failed && <Badge variant="destructive-light">failed on chain</Badge>}
+                </span>
+              </AlertDescription>
+            </Alert>
+          ) : (
+            <Alert>
+              <QuestionIcon weight="duotone" />
+              <AlertTitle>No listed app can be named</AlertTitle>
+              <AlertDescription>That is unknown, not "none": the trade may come from an app the registry does not list yet.</AlertDescription>
+            </Alert>
+          ))}
+      </div>
+    </Panel>
   );
 }
 
@@ -106,71 +104,72 @@ function Registry() {
       .catch((e: unknown) => setError(explain(e)));
   }, []);
   const shown = useMemo(() => (apps ?? []).filter((a) => `${a.name} ${a.kind} ${a.chains.map((c) => `${c} ${CHAIN_NAME[c] ?? ''}`).join(' ')}`.toLowerCase().includes(filter.toLowerCase())), [apps, filter]);
-  return (
-    <Card className="gap-0 pb-0">
-      <CardHeader className="border-b">
-        <CardTitle className="text-base font-semibold">The registry</CardTitle>
-        <CardDescription>{apps ? `${apps.length} terminals, bots and wallet apps, open and editable as one JSON file.` : 'Terminals, bots and wallet apps the registry can name.'}</CardDescription>
-        <Input value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter" aria-label="Filter apps" className="mt-2 h-8" />
-      </CardHeader>
-      <CardContent className="max-h-[32rem] overflow-y-auto px-0">
-        {error ? (
-          <div className="p-4">
-            <Failure message={error} />
-          </div>
-        ) : !apps ? (
-          <div className="flex flex-col gap-2 p-4">
-            {[0, 1, 2, 3].map((i) => (
-              <Skeleton key={i} className="h-8 w-full" />
+  const columns = useMemo<Column<TradingApp>[]>(
+    () => [
+      {
+        id: 'app',
+        header: 'App',
+        cell: ({ row }) => {
+          const Icon = KIND_ICON[row.original.kind] ?? AppWindowIcon;
+          return (
+            <span className="flex items-center gap-2 font-medium">
+              <Icon weight="duotone" className="size-4 text-muted-foreground" />
+              {row.original.name}
+              {!row.original.active && (
+                <Badge variant="outline" size="sm" className="text-muted-foreground">
+                  retired
+                </Badge>
+              )}
+            </span>
+          );
+        },
+      },
+      { id: 'kind', header: 'Kind', cell: ({ row }) => <span className="text-muted-foreground capitalize">{row.original.kind}</span> },
+      {
+        id: 'chains',
+        header: 'Chains',
+        cell: ({ row }) => (
+          <div className="flex flex-wrap gap-1">
+            {row.original.chains.map((c) => (
+              <Badge key={c} variant="secondary">
+                {CHAIN_NAME[c] ?? c.toUpperCase()}
+              </Badge>
             ))}
           </div>
-        ) : shown.length === 0 ? (
-          <Empty icon={<MagnifyingGlassIcon weight="duotone" />} title="No app matches" />
-        ) : (
-          <Table>
-            <TableHeader>
-              <TableRow>
-                <TableHead className="pl-4">App</TableHead>
-                <TableHead>Kind</TableHead>
-                <TableHead className="pr-4">Chains</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {shown.map((app) => {
-                const Icon = KIND_ICON[app.kind] ?? AppWindowIcon;
-                return (
-                  <TableRow key={app.id}>
-                    <TableCell className="pl-4 font-medium">
-                      <span className="flex items-center gap-2">
-                        <Icon weight="duotone" className="size-4 text-muted-foreground" />
-                        {app.name}
-                        {!app.active && <Badge variant="outline" className="text-muted-foreground">retired</Badge>}
-                      </span>
-                    </TableCell>
-                    <TableCell className="text-muted-foreground capitalize">{app.kind}</TableCell>
-                    <TableCell className="pr-4">
-                      <div className="flex flex-wrap gap-1">
-                        {app.chains.map((c) => (
-                          <Badge key={c} variant="secondary">
-                            {CHAIN_NAME[c] ?? c.toUpperCase()}
-                          </Badge>
-                        ))}
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
-            </TableBody>
-          </Table>
-        )}
-      </CardContent>
-    </Card>
+        ),
+      },
+    ],
+    [],
+  );
+  return (
+    <Panel
+      title="The registry"
+      description={apps ? `${apps.length} terminals, bots and wallet apps, open and editable as one JSON file.` : 'Terminals, bots and wallet apps the registry can name.'}
+      icon={<ListMagnifyingGlassIcon weight="duotone" />}
+      flush
+    >
+      <div className="border-b p-3">
+        <InputGroup className="h-9">
+          <InputGroupAddon>
+            <MagnifyingGlassIcon />
+          </InputGroupAddon>
+          <InputGroupInput value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Filter by name, kind or chain" aria-label="Filter apps" />
+        </InputGroup>
+      </div>
+      {error ? (
+        <div className="p-3">
+          <Failure message={error} />
+        </div>
+      ) : (
+        <DataTable columns={columns} data={shown} isLoading={apps === null} getRowId={(a) => a.id} pageSize={10} hideOnPhone={['kind']} emptyMessage="No app matches." />
+      )}
+    </Panel>
   );
 }
 
 export function AppsPage({ signature }: { signature: string | null }) {
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
+    <div className="grid items-start gap-6 lg:grid-cols-[1.1fr_0.9fr]">
       <Identify signature={signature} />
       <Registry />
     </div>
