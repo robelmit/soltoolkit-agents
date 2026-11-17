@@ -8,6 +8,7 @@ const SIBLINGS = {
   '@soltoolkit/bot-core': 'soltoolkit-bots/packages/bot-core',
   '@soltoolkit/launchpad-sdk': 'soltoolkit-sdk/packages/launchpad-sdk',
   '@soltoolkit/rpc': 'soltoolkit-sdk/packages/rpc',
+  '@soltoolkit/holder-map-react': 'soltoolkit-insights/packages/holder-map-react',
   '@soltoolkit/app-registry': 'soltoolkit-insights/packages/app-registry',
   '@soltoolkit/holder-map': 'soltoolkit-insights/packages/holder-map',
   '@soltoolkit/token-safety': 'soltoolkit-insights/packages/token-safety',

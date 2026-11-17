@@ -1,6 +1,6 @@
 # soltoolkit-agents
 
-Solana launchpad data for AI agents and for apps, from the team behind the Hexa trading terminal: a read-only MCP server and a small rate-limited HTTP API over the same tools.
+Solana launchpad data for AI agents, for apps and for people, from the team behind the Hexa trading terminal: a read-only MCP server, a small rate-limited HTTP API over the same tools, and soltoolkit Live, the site that shows them working on mainnet.
 
 ## What is here
 
@@ -8,6 +8,7 @@ Solana launchpad data for AI agents and for apps, from the team behind the Hexa 
 |---|---|
 | [`@soltoolkit/mcp`](packages/mcp) | A Model Context Protocol server over stdio or HTTP: quote a launchpad trade, grade a token, map its holders, name the app behind a transaction, score a wallet. No key, and no tool that signs or sends |
 | [demo-api](apps/demo-api) | The same tools as plain HTTP routes, with a budget per client and a short cache in front of the RPC endpoint |
+| [live](apps/live) | soltoolkit Live: launches, a token checker with grade, holder map and quotes, a wallet report and the trading-app checker, in React with shadcn/ui and Phosphor icons |
 
 [docs/architecture.md](docs/architecture.md) shows how the soltoolkit pieces fit together.
 
@@ -37,7 +38,7 @@ pnpm check        # build, typecheck, test, lint
 | [soltoolkit-feed](https://github.com/robelmit/soltoolkit-feed) | The launch feed: a Rust indexer for launches, trades and migrations |
 | [soltoolkit-insights](https://github.com/robelmit/soltoolkit-insights) | Token safety, holder maps and their viewer, wallet PnL, the trading-app registry |
 | [soltoolkit-bots](https://github.com/robelmit/soltoolkit-bots) | Telegram and Discord community bots |
-| **soltoolkit-agents** (this one) | A read-only MCP server for AI agents, and an HTTP API |
+| **soltoolkit-agents** (this one) | A read-only MCP server for AI agents, an HTTP API, and the soltoolkit Live site |
 
 See [CONTRIBUTING.md](CONTRIBUTING.md) to contribute and [SECURITY.md](SECURITY.md) to report a vulnerability.
 

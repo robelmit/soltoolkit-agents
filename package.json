@@ -2,7 +2,7 @@
   "name": "soltoolkit-agents",
   "private": true,
   "version": "0.0.0",
-  "description": "A read-only MCP server and a rate-limited HTTP API for Solana launchpad tokens: quote a trade, grade a token, map its holders, name the app behind a transaction, score a wallet.",
+  "description": "A read-only MCP server, a rate-limited HTTP API and a live site for Solana launchpad tokens: quote a trade, grade a token, map its holders, name the app behind a transaction, score a wallet.",
   "license": "MIT",
   "packageManager": "pnpm@11.8.0",
   "engines": {
