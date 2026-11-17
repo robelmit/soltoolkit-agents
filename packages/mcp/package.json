@@ -3,14 +3,21 @@
   "version": "0.1.0",
   "description": "A read-only MCP server for Solana launchpad tokens: quote a trade, grade a token, map its holders, name the app behind a transaction, score a wallet. Runs over stdio or HTTP, holds no key, and has no tool that signs or sends.",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/robelmit/soltoolkit-agents.git",
+    "directory": "packages/mcp"
+  },
+  "homepage": "https://github.com/robelmit/soltoolkit-agents/tree/main/packages/mcp#readme",
+  "bugs": {
+    "url": "https://github.com/robelmit/soltoolkit-agents/issues"
+  },
   "keywords": [
     "solana",
     "mcp",
     "model-context-protocol",
-    "ai-agent",
-    "pump.fun",
-    "launchpad",
-    "read-only"
+    "ai-agents",
+    "pump.fun"
   ],
   "type": "module",
   "main": "./dist/index.cjs",
