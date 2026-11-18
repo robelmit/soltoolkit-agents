@@ -41,7 +41,8 @@ function ToggleGroup({
       data-orientation={orientation}
       style={{ "--gap": spacing } as React.CSSProperties}
       className={cn(
-        "group/toggle-group flex w-fit flex-row items-center gap-[--spacing(var(--gap))] rounded-lg data-[size=sm]:rounded-[min(var(--radius-md),10px)] data-vertical:flex-col data-vertical:items-stretch",
+        // The pill track: muted, with an inset hairline, holding the pill tabs.
+        "group/toggle-group flex w-fit flex-row items-center gap-0.5 rounded-full bg-muted/70 p-1 shadow-[inset_0_0_0_0.5px_var(--border)] data-vertical:flex-col data-vertical:items-stretch data-vertical:rounded-2xl",
         className
       )}
       {...props}

@@ -22,7 +22,7 @@ export function TokenSearch({ initial = '', autoFocus = false }: { initial?: str
   return (
     <form onSubmit={submit} className="flex w-full flex-col gap-1.5">
       <div className="flex gap-2">
-        <InputGroup className="h-10 flex-1 bg-background">
+        <InputGroup className="h-10 flex-1">
           <InputGroupAddon>
             <MagnifyingGlassIcon />
           </InputGroupAddon>

@@ -2,10 +2,8 @@ import { CodeIcon, FingerprintIcon, GithubLogoIcon, RocketLaunchIcon, ShieldChec
 import { cn } from 'cn';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrandMark } from '@/components/brand';
-import { Badge } from '@/components/reui/badge';
-import { Frame, FramePanel } from '@/components/reui/frame';
+import { Surface } from '@/components/panel';
 import { TokenSearch } from '@/components/token-search';
-import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { health } from '@/lib/api';
@@ -38,10 +36,15 @@ function ApiStatus() {
   return (
     <Tooltip>
       <TooltipTrigger asChild>
-        <Badge variant={up === null ? 'outline' : up ? 'success-light' : 'destructive-light'} size="lg" radius="full" className="hidden sm:inline-flex">
-          <span className={cn('size-1.5 rounded-full', up === null ? 'bg-muted-foreground' : up ? 'bg-success' : 'bg-destructive')} />
-          {up === null ? 'Connecting' : up ? 'Mainnet' : 'API offline'}
-        </Badge>
+        <span tabIndex={0} className="hidden items-center gap-2.5 rounded-full border border-border bg-card py-1 pr-3.5 pl-1 outline-none focus-visible:ring-2 focus-visible:ring-ring sm:flex">
+          <span className={cn('grid size-8 place-items-center rounded-full', up === null ? 'bg-muted' : up ? 'bg-primary-light' : 'bg-destructive/15')}>
+            <span className={cn('size-2 rounded-full', up === null ? 'bg-muted-foreground' : up ? 'animate-pulse bg-success' : 'bg-destructive')} />
+          </span>
+          <span className="flex flex-col leading-tight">
+            <span className="text-[13px] font-bold">{up === null ? 'Connecting' : up ? 'Mainnet' : 'API offline'}</span>
+            <span className="text-[11px] text-muted-foreground">{up ? 'Live data' : 'Demo API'}</span>
+          </span>
+        </span>
       </TooltipTrigger>
       <TooltipContent>{up ? 'Reading Solana mainnet through the free demo API' : 'The demo API is not answering'}</TooltipContent>
     </Tooltip>
@@ -50,22 +53,22 @@ function ApiStatus() {
 
 function Intro() {
   return (
-    <Frame spacing="lg">
-      <FramePanel className="flex flex-col gap-5 lg:flex-row lg:items-end lg:justify-between">
-        <div className="max-w-xl">
-          <div className="mb-3 flex flex-wrap gap-1.5">
-            <Badge variant="primary-light">Open source</Badge>
-            <Badge variant="outline">MIT</Badge>
-            <Badge variant="outline">No keys held</Badge>
-          </div>
-          <h1 className="text-3xl font-semibold tracking-tight text-balance sm:text-4xl">Tools for Solana launchpads, running live on mainnet</h1>
-          <p className="mt-3 text-muted-foreground">Launches as they happen, token safety, holder clusters, quotes, wallet scores and the apps behind trades. Every number on this site comes from the open-source soltoolkit packages.</p>
+    <Surface className="flex flex-col gap-5 p-6 lg:flex-row lg:items-end lg:justify-between">
+      <div className="max-w-xl">
+        <div className="mb-3 flex flex-wrap gap-1.5">
+          {['Open source', 'MIT', 'No keys held'].map((label, i) => (
+            <span key={label} className={cn('inline-flex h-6 items-center rounded-full px-2.5 text-[11.5px] font-bold', i === 0 ? 'bg-primary-light text-primary-text' : 'border border-border text-muted-foreground')}>
+              {label}
+            </span>
+          ))}
         </div>
-        <div className="w-full lg:max-w-md">
-          <TokenSearch />
-        </div>
-      </FramePanel>
-    </Frame>
+        <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-[-0.035em] text-balance sm:text-[36px]">Tools for Solana launchpads, running live on mainnet</h1>
+        <p className="mt-3 text-[14px] leading-relaxed text-muted-foreground">Launches as they happen, token safety, holder clusters, quotes, wallet scores and the apps behind trades. Every number on this site comes from the open-source soltoolkit packages.</p>
+      </div>
+      <div className="w-full lg:max-w-md">
+        <TokenSearch />
+      </div>
+    </Surface>
   );
 }
 
@@ -76,51 +79,66 @@ export function App() {
     document.querySelector('nav[data-mobile] [aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
   }, [route.page]);
   return (
-    <div className="flex min-h-svh flex-col bg-muted/40 dark:bg-background">
-      <header className="sticky top-0 z-20 border-b bg-background/80 backdrop-blur">
-        <div className="mx-auto flex h-14 max-w-6xl items-center gap-4 px-4">
-          <a href={href('launches')} className="flex items-center gap-2.5 font-semibold tracking-tight">
-            <BrandMark className="size-7" />
-            soltoolkit
-            <Badge variant="primary-light" size="sm">
-              Live
-            </Badge>
+    <div className="flex min-h-svh flex-col bg-background">
+      <header className="sticky top-0 z-20 border-b border-border/60 bg-background/85 backdrop-blur-xl">
+        <div className="mx-auto flex h-16 max-w-6xl items-center gap-4 px-5">
+          <a href={href('launches')} className="flex items-center gap-2" aria-label="soltoolkit Live home">
+            <BrandMark className="size-8" />
+            <span className="text-[19px] leading-none font-extrabold tracking-[-0.04em]">
+              soltoolkit<span className="text-primary"> live</span>
+            </span>
           </a>
-          <nav className="hidden items-center gap-1 md:flex" aria-label="Pages">
+          <nav className="mx-auto hidden h-10 items-center gap-0.5 rounded-full bg-muted/70 p-1 shadow-[inset_0_0_0_0.5px_var(--border)] lg:flex" aria-label="Pages">
             {NAV.map(({ page, label, Icon }) => (
-              <a key={page} href={href(page)} aria-current={route.page === page ? 'page' : undefined} className={cn('flex items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground transition-colors hover:bg-muted hover:text-foreground', route.page === page && 'bg-muted font-medium text-foreground')}>
-                <Icon weight={route.page === page ? 'duotone' : 'regular'} className="size-4" />
+              <a
+                key={page}
+                href={href(page)}
+                aria-current={route.page === page ? 'page' : undefined}
+                className={cn(
+                  'flex h-8 items-center gap-1.5 rounded-full px-3 text-[13.5px] tracking-[-0.01em] whitespace-nowrap transition-colors',
+                  route.page === page ? 'bg-card font-semibold text-foreground shadow-[0_1px_0_var(--border-shadow),inset_0_0_0_0.5px_var(--border)]' : 'font-medium text-muted-foreground hover:text-foreground',
+                )}
+              >
+                <Icon weight={route.page === page ? 'duotone' : 'regular'} className={cn('size-[18px]', route.page === page && 'text-primary')} />
                 {label}
               </a>
             ))}
           </nav>
-          <div className="ml-auto flex items-center gap-2">
+          <div className="ml-auto flex items-center gap-3 lg:ml-0">
             <ApiStatus />
-            <Button variant="ghost" size="icon" asChild>
-              <a href="https://github.com/robelmit/soltoolkit-sdk" target="_blank" rel="noreferrer" aria-label="soltoolkit on GitHub">
-                <GithubLogoIcon weight="duotone" className="size-5" />
-              </a>
-            </Button>
+            <a href="https://github.com/robelmit/soltoolkit-sdk" target="_blank" rel="noreferrer" aria-label="soltoolkit on GitHub" className="grid size-9 place-items-center rounded-full border border-border bg-card transition-colors hover:bg-muted">
+              <GithubLogoIcon weight="duotone" className="size-[18px]" />
+            </a>
           </div>
         </div>
-        <nav data-mobile className="flex gap-1 overflow-x-auto border-t px-3 py-1.5 md:hidden" aria-label="Pages">
-          {NAV.map(({ page, label, Icon }) => (
-            <a key={page} href={href(page)} aria-current={route.page === page ? 'page' : undefined} className={cn('flex shrink-0 items-center gap-1.5 rounded-md px-2.5 py-1.5 text-sm text-muted-foreground', route.page === page && 'bg-muted font-medium text-foreground')}>
-              <Icon weight={route.page === page ? 'duotone' : 'regular'} className="size-4" />
-              {label}
-            </a>
-          ))}
-        </nav>
+        <div className="overflow-x-auto px-4 pb-3 [scrollbar-width:none] lg:hidden [&::-webkit-scrollbar]:hidden">
+          <nav data-mobile className="flex w-max items-center gap-0.5 rounded-full bg-muted/70 p-1 shadow-[inset_0_0_0_0.5px_var(--border)]" aria-label="Pages">
+            {NAV.map(({ page, label, Icon }) => (
+              <a
+                key={page}
+                href={href(page)}
+                aria-current={route.page === page ? 'page' : undefined}
+                className={cn(
+                  'flex h-8 shrink-0 items-center gap-1.5 rounded-full px-3 text-[13.5px] whitespace-nowrap',
+                  route.page === page ? 'bg-card font-semibold text-foreground shadow-[0_1px_0_var(--border-shadow),inset_0_0_0_0.5px_var(--border)]' : 'font-medium text-muted-foreground',
+                )}
+              >
+                <Icon weight={route.page === page ? 'duotone' : 'regular'} className={cn('size-[18px]', route.page === page && 'text-primary')} />
+                {label}
+              </a>
+            ))}
+          </nav>
+        </div>
       </header>
 
-      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-4 py-6">
+      <main className="mx-auto flex w-full max-w-6xl flex-1 flex-col gap-6 px-5 py-6">
         {route.page === 'launches' && (
           <>
             <Intro />
             <LaunchesPage />
           </>
         )}
-        <Suspense fallback={<Skeleton className="h-96 w-full rounded-xl" />}>
+        <Suspense fallback={<Skeleton className="h-96 w-full rounded-[20px]" />}>
           {route.page === 'token' && <TokenPage mint={route.param} />}
           {route.page === 'wallet' && <WalletPage />}
           {route.page === 'apps' && <AppsPage signature={route.param} />}

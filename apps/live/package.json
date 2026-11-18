@@ -2,7 +2,7 @@
   "name": "@soltoolkit/live",
   "version": "0.1.0",
   "private": true,
-  "description": "soltoolkit Live: the toolkit working on Solana mainnet in a browser. Launches as they happen, a token checker with its safety grade, holder map and quotes, a wallet report, the trading-app checker, and the API for developers. React with ReUI components, DM Sans and Phosphor icons.",
+  "description": "soltoolkit Live: the toolkit working on Solana mainnet in a browser. Launches as they happen, a token checker with its safety grade, holder map and quotes, a wallet report, the trading-app checker, and the API for developers. React with ReUI tables and code blocks, the soltoolkit look (edged cards, raised pill buttons, pill tabs), DM Sans and Phosphor icons.",
   "license": "MIT",
   "type": "module",
   "scripts": {
