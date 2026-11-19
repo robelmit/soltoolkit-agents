@@ -179,3 +179,19 @@ describe('the cache', () => {
     expect(cache.size).toBeLessThanOrEqual(3);
   });
 });
+
+describe('share page', () => {
+  it('serves preview tags for a token and sends people on to its page, escaping what it prints', async () => {
+    const h = harness();
+    const response = await h.get(`/t/${MINT}`);
+    expect(response.headers.get('content-type')).toContain('text/html');
+    const html = await response.text();
+    // The faked chain answers nothing, so the page falls back to a general card.
+    expect(html).toContain('<meta property="og:title" content="A Solana token, checked on soltoolkit Live">');
+    expect(html).toContain('<meta property="og:image" content="http://api.test/og.png">');
+    expect(html).toContain(`<meta http-equiv="refresh" content="0;url=/#/token/${MINT}">`);
+    const odd = await (await h.get('/t/%3Cscript%3E')).text();
+    expect(odd).not.toContain('<script>location.replace("/#/token/<script>")');
+    expect(odd).toContain('/#/token/%3Cscript%3E');
+  });
+});

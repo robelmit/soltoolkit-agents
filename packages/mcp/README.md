@@ -72,6 +72,19 @@ createServer(async (req, res) => {
 
 It has no authentication of its own. Put it behind your own, or keep it on a private network. If you expose it, use the `limit` hook: every tool call can cost reads on your RPC endpoint.
 
+## As plain functions
+
+The same tools, with the same bounds and argument checks, without the protocol: for a bot or a script of your own.
+
+```ts
+import { createToolRunner } from '@soltoolkit/mcp';
+
+const tools = createToolRunner({ rpcUrl: 'https://your-rpc.example' });
+const quote = await tools.run('launchpad_quote', { mint: '<token>', side: 'buy', amountIn: '500000000' });
+```
+
+A tool that could not do the thing throws a `ToolCallError` whose `code` is the one the server would have answered (`NO_VENUE`, `NOT_A_TOKEN`, `INVALID_ARGUMENTS`, `BUSY`, `RPC_ERROR`, …). The soltoolkit bots use this for `/quote`, `/safety`, `/holders` and `/app`.
+
 ## Bounds
 
 | Bound | Default | Option |
@@ -96,7 +109,7 @@ It has no authentication of its own. Put it behind your own, or keep it on a pri
 pnpm --filter @soltoolkit/mcp test
 ```
 
-15 tests cover the protocol, the argument checks, each tool against faked reads, and both transports. The server was also run over stdio against a public mainnet endpoint: it quoted two tokens that were trading on pump.fun at that moment, refused one quoted in another coin with the reason, graded a token, and read a transaction.
+17 tests cover the protocol, the argument checks, each tool against faked reads, both transports, and the tools as plain functions. The server was also run over stdio against a public mainnet endpoint: it quoted two tokens that were trading on pump.fun at that moment, refused one quoted in another coin with the reason, graded a token, and read a transaction.
 
 ## Licence
 

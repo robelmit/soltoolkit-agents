@@ -1,14 +1,14 @@
 import { useEffect, useState } from 'react';
 
 /** The pages, addressed by the URL's hash so the site is static files and a link can be shared. */
-export type Page = 'launches' | 'token' | 'wallet' | 'apps' | 'developers';
+export type Page = 'launches' | 'token' | 'wallet' | 'apps' | 'developers' | 'embed';
 export interface Route {
   readonly page: Page;
-  /** The token page's mint, or the apps page's transaction signature. */
+  /** The token page's and the embed's mint, or the apps page's transaction signature. */
   readonly param: string | null;
 }
 
-const PAGES: readonly Page[] = ['launches', 'token', 'wallet', 'apps', 'developers'];
+const PAGES: readonly Page[] = ['launches', 'token', 'wallet', 'apps', 'developers', 'embed'];
 
 export function parseRoute(hash: string): Route {
   const [page, param] = hash.replace(/^#\/?/, '').split('/');

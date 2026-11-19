@@ -1,4 +1,4 @@
-import { CodeIcon, FingerprintIcon, GithubLogoIcon, RocketLaunchIcon, ShieldCheckIcon, WalletIcon } from '@phosphor-icons/react';
+import { CodeIcon, DiscordLogoIcon, FingerprintIcon, GithubLogoIcon, RocketLaunchIcon, ShieldCheckIcon, TelegramLogoIcon, WalletIcon } from '@phosphor-icons/react';
 import { cn } from 'cn';
 import { lazy, Suspense, useEffect, useState } from 'react';
 import { BrandMark } from '@/components/brand';
@@ -7,6 +7,7 @@ import { TokenSearch } from '@/components/token-search';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
 import { health } from '@/lib/api';
+import { discordInvite, telegramInvite } from '@/lib/bots';
 import { href, useRoute, type Page } from '@/lib/route';
 import { LaunchesPage } from '@/pages/launches';
 
@@ -15,6 +16,7 @@ const TokenPage = lazy(() => import('@/pages/token').then((m) => ({ default: m.T
 const WalletPage = lazy(() => import('@/pages/wallet').then((m) => ({ default: m.WalletPage })));
 const AppsPage = lazy(() => import('@/pages/apps').then((m) => ({ default: m.AppsPage })));
 const DevelopersPage = lazy(() => import('@/pages/developers').then((m) => ({ default: m.DevelopersPage })));
+const EmbedPage = lazy(() => import('@/pages/token').then((m) => ({ default: m.EmbedPage })));
 
 const NAV: { page: Page; label: string; Icon: typeof RocketLaunchIcon }[] = [
   { page: 'launches', label: 'Launches', Icon: RocketLaunchIcon },
@@ -65,10 +67,33 @@ function Intro() {
         <h1 className="text-[30px] leading-[1.1] font-extrabold tracking-[-0.035em] text-balance sm:text-[36px]">Tools for Solana launchpads, running live on mainnet</h1>
         <p className="mt-3 text-[14px] leading-relaxed text-muted-foreground">Launches as they happen, token safety, holder clusters, quotes, wallet scores and the apps behind trades. Every number on this site comes from the open-source soltoolkit packages.</p>
       </div>
-      <div className="w-full lg:max-w-md">
+      <div className="flex w-full flex-col gap-3 lg:max-w-md">
         <TokenSearch />
+        <AddBots />
       </div>
     </Surface>
+  );
+}
+
+/** Add the hosted bots to a group or a server: token cards, buy posts, alerts and calls there. */
+function AddBots() {
+  if (!telegramInvite && !discordInvite) return null;
+  return (
+    <div className="flex flex-wrap items-center gap-2">
+      <span className="text-[12.5px] text-muted-foreground">Bring the cards to your community:</span>
+      {telegramInvite && (
+        <a href={telegramInvite} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[13px] font-semibold transition-colors hover:bg-muted">
+          <TelegramLogoIcon weight="duotone" className="size-4 text-primary" />
+          Add to Telegram
+        </a>
+      )}
+      {discordInvite && (
+        <a href={discordInvite} target="_blank" rel="noreferrer" className="inline-flex h-8 items-center gap-1.5 rounded-full border border-border bg-card px-3 text-[13px] font-semibold transition-colors hover:bg-muted">
+          <DiscordLogoIcon weight="duotone" className="size-4 text-primary" />
+          Add to Discord
+        </a>
+      )}
+    </div>
   );
 }
 
@@ -78,6 +103,19 @@ export function App() {
   useEffect(() => {
     document.querySelector('nav[data-mobile] [aria-current="page"]')?.scrollIntoView({ block: 'nearest', inline: 'center' });
   }, [route.page]);
+  // In another site's frame: the holder map alone, with a credit that opens the full page.
+  if (route.page === 'embed')
+    return (
+      <div className="flex min-h-svh flex-col gap-2 bg-background p-3">
+        <Suspense fallback={<Skeleton className="h-96 w-full rounded-[20px]" />}>
+          <EmbedPage mint={route.param} />
+        </Suspense>
+        <a href={`${window.location.origin}/${href('token', route.param)}`} target="_blank" rel="noreferrer" className="flex items-center gap-1.5 self-end text-[12px] text-muted-foreground hover:text-foreground">
+          <BrandMark className="size-4" />
+          soltoolkit live
+        </a>
+      </div>
+    );
   return (
     <div className="flex min-h-svh flex-col bg-background">
       <header className="sticky top-0 z-20 border-b border-border/60 bg-background/85 backdrop-blur-xl">

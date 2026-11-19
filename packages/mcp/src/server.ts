@@ -95,13 +95,69 @@ const failure = (code: string, message: string, details?: unknown): ToolResult =
   return { content: [{ type: 'text', text: toJson(body) }], structuredContent: body, isError: true };
 };
 
-export function createMcpServer(options: McpServerOptions): McpServer {
-  const context: ToolContext = {
-    rpc: options.rpc ?? createRpc({ url: options.rpcUrl }),
-    launchpads: options.launchpads ?? createLaunchpads({ rpcUrl: options.rpcUrl }),
-    feed: options.feed ?? null,
-    limits: { ...DEFAULT_TOOL_LIMITS, ...options.limits },
+const contextOf = (options: McpServerOptions): ToolContext => ({
+  rpc: options.rpc ?? createRpc({ url: options.rpcUrl }),
+  launchpads: options.launchpads ?? createLaunchpads({ rpcUrl: options.rpcUrl }),
+  feed: options.feed ?? null,
+  limits: { ...DEFAULT_TOOL_LIMITS, ...options.limits },
+});
+
+/** A tool call that did not give data: the tool's code (`NO_VENUE`, `BUSY`, `RPC_ERROR`, …) and a sentence for people. */
+export class ToolCallError extends Error {
+  constructor(
+    readonly code: string,
+    message: string,
+  ) {
+    super(message);
+    this.name = 'ToolCallError';
+  }
+}
+
+export interface ToolRunner {
+  /** The tools this runner offers. */
+  readonly tools: readonly string[];
+  /** Checks the arguments, runs the tool with the same limits as the server, and returns its data as JSON. */
+  run(name: string, args: Record<string, unknown>): Promise<unknown>;
+}
+
+/**
+ * The same tools as plain functions, for a program of your own (a bot, a script): no protocol around them. A tool
+ * that could not do the thing throws a `ToolCallError` with the code the server would have answered.
+ */
+export function createToolRunner(options: McpServerOptions): ToolRunner {
+  const context = contextOf(options);
+  const byName = new Map(TOOLS.filter((tool) => !tool.needsFeed || context.feed !== null).map((tool) => [tool.name, tool]));
+  const maxConcurrent = Math.max(1, options.maxConcurrentCalls ?? 4);
+  let running = 0;
+  return {
+    tools: [...byName.keys()],
+    async run(name, raw) {
+      const tool = byName.get(name);
+      if (!tool) throw new ToolCallError('UNKNOWN_TOOL', `Unknown tool: ${name}`);
+      let args: Record<string, unknown>;
+      try {
+        args = checkArguments(tool.input, raw);
+      } catch (error) {
+        if (error instanceof InvalidArguments) throw new ToolCallError('INVALID_ARGUMENTS', error.message);
+        throw error;
+      }
+      if (running >= maxConcurrent) throw new ToolCallError('BUSY', 'Too many reads are running at once. Try again in a moment.');
+      running += 1;
+      try {
+        return JSON.parse(toJson(await tool.run(args, context))) as unknown;
+      } catch (error) {
+        if (error instanceof ToolFailure) throw new ToolCallError(error.code, error.message);
+        if (error instanceof RpcError) throw new ToolCallError('RPC_ERROR', 'The Solana RPC endpoint answered with an error. Try again in a moment.');
+        throw error;
+      } finally {
+        running -= 1;
+      }
+    },
   };
+}
+
+export function createMcpServer(options: McpServerOptions): McpServer {
+  const context = contextOf(options);
   const offered = TOOLS.filter((tool) => !tool.needsFeed || context.feed !== null);
   const byName = new Map(offered.map((tool) => [tool.name, tool]));
   const maxConcurrent = Math.max(1, options.maxConcurrentCalls ?? 4);

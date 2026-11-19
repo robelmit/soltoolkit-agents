@@ -3,7 +3,7 @@ import type { Launchpads } from '@soltoolkit/launchpad-sdk';
 import { NoVenueError } from '@soltoolkit/launchpad-sdk';
 import type { Rpc } from '@soltoolkit/rpc';
 import { describe, expect, it } from 'vitest';
-import { InvalidArguments, MAX_BATCH, RPC, TOOLS, checkArguments, createMcpServer, parseMessages, serveStdio, type JsonRpcResponse, type McpServer } from '../src';
+import { InvalidArguments, MAX_BATCH, RPC, TOOLS, ToolCallError, checkArguments, createMcpServer, createToolRunner, parseMessages, serveStdio, type JsonRpcResponse, type McpServer } from '../src';
 
 const MINT = 'FWFxnxR1Esvv6Ebcntr357ri1mucV5FiKTG1kEiBpump';
 const SIGNATURE = '4YSbm9KCpDV2orrQPeXg41hw9tzdSfNLe3ehJzqkPNxoTgepXwKWZhcjSbtkwFqzNKKCxNNnpL9XFKsDQt3u3gVc';
@@ -221,5 +221,29 @@ describe('transports', () => {
     expect(lines.find((l) => l.id === 1)!.result).toMatchObject({ serverInfo: { name: 'soltoolkit' } });
     expect(lines.find((l) => l.id === null)!.error).toMatchObject({ code: RPC.PARSE_ERROR });
     expect((lines.find((l) => l.id === 2)!.result as { tools: unknown[] }).tools).toHaveLength(6);
+  });
+});
+
+describe('createToolRunner', () => {
+  const rpc: Rpc = { call: async <T>() => null as T };
+
+  it('runs a tool as a plain function and returns its data with base units as strings', async () => {
+    const launchpads = {
+      quote: async () => ({ venue: 'pumpfun', side: 'buy', mint: MINT, inAmount: 500_000_000n, outAmount: 12_000_000_000n, minOutAmount: 11_640_000_000n, slippageBps: 300, venueFeeLamports: 5_000_000n, priceImpactBps: 120, quotedAt: 1 }),
+    } as unknown as Launchpads;
+    const runner = createToolRunner({ rpcUrl: 'http://rpc.invalid', rpc, launchpads });
+    expect(runner.tools).toContain('launchpad_quote');
+    expect(runner.tools).not.toContain('latest_launches');
+    expect(await runner.run('launchpad_quote', { mint: MINT, side: 'buy', amountIn: '500000000' })).toMatchObject({ venue: 'pumpfun', outAmount: '12000000000', venueFeeLamports: '5000000', priceImpactBps: 120 });
+  });
+
+  it('throws the code the server would have answered', async () => {
+    const launchpads = { quote: async () => { throw new NoVenueError(MINT, []); } } as unknown as Launchpads;
+    const runner = createToolRunner({ rpcUrl: 'http://rpc.invalid', rpc, launchpads });
+    await expect(runner.run('launchpad_quote', { mint: MINT, side: 'buy', amountIn: '1' })).rejects.toMatchObject({ code: 'NO_VENUE' });
+    await expect(runner.run('launchpad_quote', { mint: 'nope', side: 'buy', amountIn: '1' })).rejects.toMatchObject({ code: 'INVALID_ARGUMENTS' });
+    // An answer the tool did not expect is not a tool error: it passes through for the caller to treat as a failure.
+    await expect(runner.run('token_safety', { mint: MINT })).rejects.not.toBeInstanceOf(ToolCallError);
+    await expect(runner.run('nope', {})).rejects.toBeInstanceOf(ToolCallError);
   });
 });

@@ -2,6 +2,7 @@ import { ArrowsLeftRightIcon, CheckCircleIcon, CircleDashedIcon, CoinsIcon, Grap
 import { HolderMap } from '@soltoolkit/holder-map-react';
 import { useEffect, useMemo, useState, type ReactNode } from 'react';
 import { Address } from '@/components/address';
+import { ShareButtons } from '@/components/share';
 import { GradeBadge, gradeInfo } from '@/components/grade';
 import { Panel } from '@/components/panel';
 import { Alert, AlertDescription, AlertTitle } from '@/components/reui/alert';
@@ -286,6 +287,9 @@ export function TokenPage({ mint }: { mint: string | null }) {
             </h1>
           )}
           <Address value={mint} href={solscan.token(mint)} keep={8} className="mt-1 text-muted-foreground" />
+          <div className="mt-3">
+            <ShareButtons mint={mint} name={meta?.symbol ?? meta?.name ?? short(mint, 6)} grade={safety.data ? gradeInfo(safety.data.report.grade).label : null} />
+          </div>
         </div>
         <div className="w-full md:max-w-md">
           <TokenSearch />
@@ -311,4 +315,10 @@ export function TokenPage({ mint }: { mint: string | null }) {
       )}
     </div>
   );
+}
+
+/** The holder map alone, for a frame on another site (`#/embed/<mint>`). */
+export function EmbedPage({ mint }: { mint: string | null }) {
+  if (!mint || !isAddress(mint)) return <Empty icon={<GraphIcon weight="duotone" />} title="No token">The embed address ends in a token mint: #/embed/&lt;mint&gt;.</Empty>;
+  return <HoldersPanel mint={mint} ready />;
 }

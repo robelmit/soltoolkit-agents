@@ -135,6 +135,38 @@ export function createApp(options: AppOptions): App {
     }
   }
 
+  /**
+   * A token's share page (`/t/<mint>`): the title, grade and checks as Open Graph tags, so a link pasted into
+   * Telegram, Discord or X shows a card; people are sent on to the site's token page at once.
+   */
+  async function sharePage(mint: string, url: URL, client: string): Promise<Response> {
+    const target = `/#/token/${encodeURIComponent(mint)}`;
+    let title = 'A Solana token, checked on soltoolkit Live';
+    let description = 'Safety grade, on-chain facts, holder clusters and a live quote, read from Solana mainnet by the open-source soltoolkit.';
+    if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) && limiter.take(client, 2) === null) {
+      try {
+        const tool = tools.get('token_safety')!;
+        const data = (await cache.get(`share:${mint}`, 300_000, () => tool.run({ mint }, context))) as {
+          report?: { grade?: string; score?: number; maxScore?: number; incomplete?: boolean; checks?: { label: string; passed: boolean; unverified?: boolean }[] };
+          facts?: { metadata?: { name?: string; symbol?: string } | null };
+        };
+        const meta = data.facts?.metadata ?? null;
+        const name = meta?.symbol ? `${meta.symbol}${meta.name && meta.name !== meta.symbol ? ` (${meta.name})` : ''}` : `${mint.slice(0, 4)}…${mint.slice(-4)}`;
+        const r = data.report;
+        const grade = r?.grade ? r.grade[0]!.toUpperCase() + r.grade.slice(1) : null;
+        title = `${name}${grade ? `: safety ${grade}${r && !r.incomplete ? ` (${r.score}/${r.maxScore})` : ''}` : ''}`;
+        const checks = (r?.checks ?? []).slice(0, 4).map((c) => `${c.unverified ? '?' : c.passed ? '✓' : '✗'} ${c.label}`);
+        description = `${checks.join(' · ')}${checks.length ? '. ' : ''}Read from the chain by soltoolkit; a grade is a start, not advice.`;
+      } catch {
+        // A token that cannot be read still gets a page; the site says what went wrong.
+      }
+    }
+    const esc = (text: string): string => text.replace(/[&<>"']/g, (c) => `&#${c.charCodeAt(0)};`);
+    const image = `${url.origin}/og.png`;
+    const html = `<!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${esc(title)} · soltoolkit Live</title><meta name="description" content="${esc(description)}"><meta property="og:type" content="website"><meta property="og:site_name" content="soltoolkit Live"><meta property="og:title" content="${esc(title)}"><meta property="og:description" content="${esc(description)}"><meta property="og:url" content="${esc(`${url.origin}/t/${mint}`)}"><meta property="og:image" content="${esc(image)}"><meta property="og:image:width" content="1200"><meta property="og:image:height" content="630"><meta name="twitter:card" content="summary_large_image"><meta name="twitter:title" content="${esc(title)}"><meta name="twitter:description" content="${esc(description)}"><meta name="twitter:image" content="${esc(image)}"><meta http-equiv="refresh" content="0;url=${esc(target)}"><link rel="canonical" href="${esc(`${url.origin}${target}`)}"></head><body style="background:#0a0a0b;color:#e8e8ea;font-family:system-ui,sans-serif"><p><a style="color:#6cc864" href="${esc(target)}">Open ${esc(title)} on soltoolkit Live</a></p><script>location.replace(${JSON.stringify(target)})</script></body></html>`;
+    return new Response(html, { status: 200, headers: { 'Content-Type': 'text/html; charset=utf-8', 'Cache-Control': 'public, max-age=300' } });
+  }
+
   async function handle(request: Request, client: string): Promise<Response> {
     const url = new URL(request.url);
     const segments = url.pathname.split('/').filter(Boolean);
@@ -143,6 +175,7 @@ export function createApp(options: AppOptions): App {
     if (method === 'OPTIONS') return new Response(null, { status: 204, headers: { ...HEADERS, 'Access-Control-Allow-Methods': 'GET, POST, OPTIONS', 'Access-Control-Allow-Headers': 'Content-Type', 'Access-Control-Max-Age': '86400' } });
     if (segments.length === 0 && method === 'GET') return answer(200, { data: index }, { 'Cache-Control': 'public, max-age=300' });
     if (segments.length === 1 && segments[0] === 'health' && method === 'GET') return answer(200, { data: { ok: true, feed: feed !== null } });
+    if (segments.length === 2 && segments[0] === 't' && method === 'GET') return sharePage(decodeURIComponent(segments[1]!), url, client);
 
     if (segments.length === 1 && segments[0] === 'mcp') {
       const response = await mcp.handleHttp(request, { limit: () => limiter.take(client, MCP_COST) });
