@@ -59,6 +59,8 @@ export const ROUTES: readonly Route[] = [
 
 /** Which HTTP status a tool's refusal becomes. Anything not listed is a 500 with a general message. */
 const STATUS: Readonly<Record<string, number>> = { INVALID_ARGUMENTS: 400, NOT_A_TOKEN: 404, NOT_FOUND: 404, NO_VENUE: 404, NOT_ON_CURVE: 404, UNSUPPORTED: 422, UNREADABLE: 502, HOLDERS_UNAVAILABLE: 502, RPC_ERROR: 502, NO_FEED: 404 };
+/** How long a share page waits for the token's safety read before serving the general card. */
+const SHARE_WAIT_MS = 4_000;
 const MAX_BODY_BYTES = 1_048_576;
 const MCP_COST = 2;
 
@@ -146,7 +148,11 @@ export function createApp(options: AppOptions): App {
     if (/^[1-9A-HJ-NP-Za-km-z]{32,44}$/.test(mint) && limiter.take(client, 2) === null) {
       try {
         const tool = tools.get('token_safety')!;
-        const data = (await cache.get(`share:${mint}`, 300_000, () => tool.run({ mint }, context))) as {
+        // Link previewers wait a few seconds at most: past four, the general card is served and the read finishes
+        // into the cache for the next one.
+        const read = cache.get(`share:${mint}`, 300_000, () => tool.run({ mint }, context));
+        read.catch(() => undefined);
+        const data = (await Promise.race([read, new Promise((_, reject) => setTimeout(() => reject(new Error('slow')), SHARE_WAIT_MS).unref?.())])) as {
           report?: { grade?: string; score?: number; maxScore?: number; incomplete?: boolean; checks?: { label: string; passed: boolean; unverified?: boolean }[] };
           facts?: { metadata?: { name?: string; symbol?: string } | null };
         };
